@@ -1,13 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Animatrix Studio - 3D</title>
+<title>Animatrix 3D Studio</title>
 <style>
-body{margin:0;overflow:hidden;background:#000;font-family:Arial;}
-
-#ui{
+body { margin:0; overflow:hidden; background:black; }
+#ui {
 position:absolute;
 top:20px;
 left:20px;
@@ -15,7 +12,7 @@ z-index:10;
 }
 
 button{
-padding:10px 14px;
+padding:10px 15px;
 margin:5px;
 border:none;
 border-radius:10px;
@@ -23,32 +20,16 @@ background:#a855f7;
 color:white;
 cursor:pointer;
 }
-
-button:hover{
-background:#c084fc;
-}
-
-#label{
-position:absolute;
-bottom:20px;
-left:20px;
-color:#fff;
-z-index:10;
-background:rgba(0,0,0,0.5);
-padding:10px 15px;
-border-radius:10px;
-}
 </style>
 </head>
+
 <body>
 
 <div id="ui">
-<button onclick="playAnim('Idle')">Idle</button>
-<button onclick="playAnim('Walk')">Walk</button>
-<button onclick="playAnim('Run')">Run</button>
+<button onclick="setAnim('idle')">Idle</button>
+<button onclick="setAnim('walk')">Walk</button>
+<button onclick="setAnim('run')">Run</button>
 </div>
-
-<div id="label">Loading 3D Model...</div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -56,94 +37,77 @@ border-radius:10px;
 <script>
 
 let scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
-
 let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(0,2,5);
 
-let renderer = new THREE.WebGLRenderer({antialias:true});
+let renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Lights
+// Light
 let light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(5,10,5);
+light.position.set(5,5,5);
 scene.add(light);
-
-let ambient = new THREE.AmbientLight(0xffffff,0.5);
-scene.add(ambient);
 
 // Ground
 let ground = new THREE.Mesh(
 new THREE.PlaneGeometry(50,50),
-new THREE.MeshStandardMaterial({color:0x111111})
+new THREE.MeshStandardMaterial({color:0x222222})
 );
 ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
+// Character
 let mixer;
 let actions = {};
-let activeAction;
+let currentAction;
 
 let loader = new THREE.GLTFLoader();
 
-loader.load(
-"https://threejs.org/examples/models/gltf/Soldier.glb",
-function(gltf){
+// Sample free model
+loader.load("https://threejs.org/examples/models/gltf/Soldier.glb", function(gltf){
 
 let model = gltf.scene;
 scene.add(model);
+
 model.scale.set(2,2,2);
 
 mixer = new THREE.AnimationMixer(model);
 
-// animations
 gltf.animations.forEach((clip)=>{
 actions[clip.name] = mixer.clipAction(clip);
 });
 
-activeAction = actions["Idle"] || gltf.animations[0] && mixer.clipAction(gltf.animations[0]);
-activeAction.play();
+currentAction = actions[Object.keys(actions)[0]];
+currentAction.play();
 
-setLabel("Model Loaded ✔");
+});
 
-},
-undefined,
-function(err){
-setLabel("Error loading model ❌");
-console.log(err);
-}
-);
+camera.position.set(0,2,5);
 
-function playAnim(name){
+function setAnim(name){
+
 if(actions[name]){
-if(activeAction) activeAction.fadeOut(0.5);
-activeAction = actions[name];
-activeAction.reset().fadeIn(0.5).play();
-setLabel("Playing: " + name);
-}else{
-setLabel("Animation not found: " + name);
-}
+currentAction.fadeOut(0.5);
+currentAction = actions[name];
+currentAction.reset().fadeIn(0.5).play();
 }
 
-function setLabel(text){
-document.getElementById("label").innerText = text;
 }
 
 let clock = new THREE.Clock();
 
 function animate(){
+
 requestAnimationFrame(animate);
-if(mixer) mixer.update(clock.getDelta());
+
+if(mixer){
+mixer.update(clock.getDelta());
+}
+
 renderer.render(scene,camera);
 }
-animate();
 
-window.addEventListener("resize",()=>{
-camera.aspect = window.innerWidth/window.innerHeight;
-camera.updateProjectionMatrix();
-renderer.setSize(window.innerWidth, window.innerHeight);
-});
+animate();
 
 </script>
 
